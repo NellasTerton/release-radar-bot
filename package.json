@@ -1,0 +1,16 @@
+{
+  "name": "release-radar-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "db:schema": "wrangler d1 execute release_radar --remote --file=./schema.sql",
+    "db:schema:local": "wrangler d1 execute release_radar --local --file=./schema.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^4.131.2"
+  }
+}

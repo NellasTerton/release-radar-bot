@@ -1,0 +1,28 @@
+name = "release-radar-bot"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+
+# Два расписания в одном воркере, различаются в scheduled() по event.cron:
+#   каждые 4 часа — обновление дат избранного + напоминания в день выхода;
+#   понедельник 06:00 UTC (09:00 МСК) — что из избранного выходит на неделе;
+#   суббота 06:00 UTC (09:00 МСК) — что выходит на выходных;
+#   каждый час — наполнение витрины (catalog): даты серий сдвигаются каждую неделю.
+[triggers]
+crons = ["17 */4 * * *", "0 6 * * 1", "0 6 * * 6", "7,37 * * * *"]
+
+[vars]
+TMDB_REGION = "RU"
+TMDB_LANGUAGE = "ru-RU"
+TZ_NAME = "Europe/Moscow"
+WEEK_CRON = "0 6 * * 1"
+WEEKEND_CRON = "0 6 * * 6"
+CATALOG_CRON = "7,37 * * * *"
+APP_URL = "https://release-radar-bot.release-radar-bot.workers.dev/app"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "release_radar"
+database_id = "f6019e7a-6719-4b11-aa82-22ee84c69e00"
+
+[observability]
+enabled = true
