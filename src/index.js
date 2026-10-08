@@ -72,11 +72,14 @@ export default {
       }
 
       await refreshDates(env, budget);
-      await sendReminders(env, budget);
+
+      const clock = localClock(env);
+      // Напоминания — только днём. Крон ходит каждые четыре часа, и ночной запуск
+      // присылал «выходит сегодня» в три ночи по Москве.
+      if (clock.hour >= 9 && clock.hour < 23) await sendReminders(env, budget);
 
       // Дожимаем подборки тем, кому утренний запуск не успел отправить.
       // Не раньше 9 утра — чтобы не прислать «неделю» ночью.
-      const clock = localClock(env);
       if (clock.hour >= 9 && budget.remaining >= 6) {
         if (clock.weekday === 'Mon') await sendPeriodDigests(env, budget, 'week', 5);
         if (clock.weekday === 'Sat') await sendPeriodDigests(env, budget, 'weekend', 5);

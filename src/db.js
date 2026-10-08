@@ -240,8 +240,17 @@ export async function pickDueReminders(env, limit) {
         WHERE n.user_id = d.user_id
           AND n.tmdb_id = d.tmdb_id
           AND n.media_type = d.media_type
-          AND n.release_date = d.release_date
           AND n.stage = d.stage
+          AND (
+            n.release_date = d.release_date
+            -- У фильма и игры релиз один, но его дата плавает: у «Чужой мамы» прокат
+            -- в России был 7 октября, а на следующий день ближайшей датой стало 8-е,
+            -- и «выходит сегодня» пришло дважды. Поэтому для них хватает того, что
+            -- такое же сообщение уже уходило в последний месяц.
+            -- У сериала release_date — дата серии, и каждая серия должна прийти своя.
+            OR (d.media_type != 'tv'
+                AND date(n.release_date) >= date(d.release_date, '-30 day'))
+          )
       )
     ORDER BY d.release_date ASC
     LIMIT ?
