@@ -214,25 +214,40 @@ export function resolveMovieDate(details, todayIso) {
     }
   }
 
-  const byDate = (a, b) => a.date.localeCompare(b.date);
-  // Самая ранняя будущая дата в мире — премьера, а не наш прокат следом за ней.
-  const upcoming = candidates.filter((c) => c.date >= todayIso).sort(byDate);
-  const chosen = upcoming[0]
-    || candidates.filter((c) => c.type === 4).sort(byDate)[0]
-    || candidates.slice().sort(byDate)[0];
+  // День мирового старта — тот, на который приходится больше всего стран, а не самая
+  // ранняя дата: у «Чужой мамы» прокат начинался в Бельгии 7 октября, в 35 странах
+  // 8-го и в США 9-го, и по самой ранней дате фильм «выходил» трижды.
+  const widest = (types) => {
+    const byDay = new Map();
+    for (const c of candidates) {
+      if (!types.includes(c.type)) continue;
+      byDay.set(c.date, (byDay.get(c.date) || 0) + 1);
+    }
+    if (!byDay.size) return null;
+    // При равенстве стран берём более раннюю дату.
+    return [...byDay].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0][0];
+  };
 
-  // Прокат и цифру храним отдельно — в «Моё ожидание» нужны обе даты.
-  const theatrical = candidates.filter((c) => c.type === 2 || c.type === 3).sort(byDate)[0];
-  const digital = candidates.filter((c) => c.type === 4 || c.type === 6).sort(byDate)[0];
+  // Прокат и цифру храним отдельно — в избранном нужны обе даты.
+  const theatrical = widest([2, 3]);
+  const digital = widest([4, 6]);
+
+  const ahead = [
+    theatrical && { date: theatrical, label: 'В кино' },
+    digital && { date: digital, label: 'Онлайн' },
+  ].filter(Boolean);
+  const byDate = (a, b) => a.date.localeCompare(b.date);
+  const chosen = ahead.filter((c) => c.date >= todayIso).sort(byDate)[0]
+    || ahead.sort((a, b) => b.date.localeCompare(a.date))[0];
 
   if (chosen) {
     return {
       release_date: chosen.date,
-      region: chosen.region,
-      release_type: RELEASE_TYPE_LABEL[chosen.type] || 'Релиз',
-      theatrical_date: theatrical?.date || null,
-      digital_date: digital?.date || null,
-      // Все даты релиза по всем странам — по ним считается «недавно вышло».
+      region: null,
+      release_type: chosen.label,
+      theatrical_date: theatrical,
+      digital_date: digital,
+      // Все даты по всем странам — нужны, чтобы понять, вышел ли фильм где-нибудь.
       all_dates: candidates,
     };
   }

@@ -86,14 +86,12 @@ function recentRelease(details, date, todayIso) {
   const inRecent = (d) => d && d >= from && d < todayIso;
 
   if (details.media_type === 'movie') {
-    // Любая дата релиза за две недели, самая ранняя в мире: это и есть премьера,
-    // наш прокат идёт следом. Онлайн важнее проката — смотреть дома.
-    const hits = (date.all_dates || []).filter((c) => inRecent(c.date));
-    if (!hits.length) return null;
-    const first = (list) => list.sort((x, y) => x.date.localeCompare(y.date))[0];
-    const online = first(hits.filter((c) => c.type === 4 || c.type === 6));
-    const cinema = first(hits.filter((c) => c.type === 2 || c.type === 3));
+    // День мирового старта, если он попал в последние две недели.
+    // Онлайн важнее проката — смотреть дома.
+    const online = inRecent(date.digital_date) ? { date: date.digital_date } : null;
+    const cinema = inRecent(date.theatrical_date) ? { date: date.theatrical_date } : null;
     const hit = online || cinema;
+    if (!hit) return null;
     return {
       date: hit.date,
       label: online ? 'вышел онлайн' : 'вышел в кино',
@@ -275,8 +273,11 @@ async function fillDetails(env, budget) {
     // Фильм, который где-то уже вышел, не «скоро выйдет», даже если наша дата ещё впереди:
     // «Обитель зла» шла в кино с 18 сентября, а по нашей дате выходила «завтра».
     // Если впереди остался онлайн-релиз — показываем его: это единственное, чего ещё ждут.
+    // Вышел — если прошёл день мирового старта (прокат или онлайн), а не первая
+    // страна с ранним прокатом.
+    const out = [date.theatrical_date, date.digital_date].filter(Boolean).some((d) => d < todayIso);
     let ahead = date;
-    if (row.media_type === 'movie' && (date.all_dates || []).some((c) => c.date < todayIso)) {
+    if (row.media_type === 'movie' && out) {
       const digital = (date.all_dates || [])
         .filter((c) => (c.type === 4 || c.type === 6) && c.date >= todayIso)
         .sort((a, b) => a.date.localeCompare(b.date))[0];
